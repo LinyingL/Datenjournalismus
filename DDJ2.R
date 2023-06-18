@@ -25,20 +25,20 @@ us_cor[1]
 
 bing <- get_sentiments("bing")
 dict_sent_bing <- as.dictionary(bing)
-nrc_us <- tokens_lookup(us_cor, dict_sent_bing,
+bing_us <- tokens_lookup(us_cor, dict_sent_bing,
                                         valuetype = "glob") %>% dfm()
-nrc_us%>%dfm_group(month)
-nrc_us_df <- convert(nrc_us, "data.frame") %>%
-  bind_cols(docvars(nrc_us))
-nrc_us_df <- nrc_us_df %>%
+bing_us%>%dfm_group(month)
+bing_us_df <- convert(bing_us, "data.frame") %>%
+  bind_cols(docvars(bing_us))
+bing_us_df <- bing_us_df %>%
   mutate(sentiment = log((positive + 0.5)/(negative + 0.5)))
 
-nrc_us_df %>%
+bing_us_df %>%
   group_by(month) %>%
   select(positive, negative, sentiment, month) %>%
   summarize_all(mean)
 
-monthly_avg <- aggregate(sentiment ~ month, nrc_us_df, mean)
+monthly_avg <- aggregate(sentiment ~ month, bing_us_df, mean)
 
 plot <- plot_ly(monthly_avg, x = ~month, y = ~sentiment, type = "scatter", mode = "lines",
                 name = "Sentiment", line = list(color = "blue"))
@@ -127,6 +127,7 @@ plot <- plot %>% add_annotations(
 )
 
 plot
+### Api key is removed ###
 api_create(plot, filename = "Blogbeitrag")
 saveWidget(plot, "interactive_plot.html", selfcontained = TRUE)
 
