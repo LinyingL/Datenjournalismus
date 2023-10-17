@@ -175,9 +175,9 @@ correlation, p_value = pearsonr(neg_df['sentiment'], neg_df['likeCount'])
 print(coor,p_value)
 # 0.04754878727341977 0.10502566884630948
 
-# However，the sentiment above don't mean anything, because it's bases on numbers not content.
-# What makes sense is to measure the polarity in public opinion.
-# So I will measure the sentence's sentiment to different keywords.
+# However，the sentiment above don't mean anything, because it's bases on scores not contents.
+# Mathmatical calculation can't understand the meaning of words.
+# For political science, what makes sense is to measure the polarity in public opinion.
 from nltk.tokenize import sent_tokenize   
 def plot_sentiment_by_sentence(df, keywords, title):
     sentiments = []
@@ -197,5 +197,53 @@ def plot_sentiment_by_sentence(df, keywords, title):
     plt.show()
 
 # Polarity_scores() returns a dictionary of scores
-plot_sentiment_by_sentence(df_english, ["Israel", "Israeli", "IDF"], "Sentiment vs Like Count for Israel by Sentence")
-plot_sentiment_by_sentence(df_english, ["Hamas"], "Sentiment vs Like Count for Palestine by Sentence")
+plot_sentiment_by_sentence(df_english, ["Israel", "Israeli", "IDF"], "Sentiment for Israel by Sentence")
+plot_sentiment_by_sentence(df_english, ["Hamas"], "Sentiment for Palestine by Sentence")
+
+# But problem: When two keywords appear in the same sentence, the sentiment score will be counted twice.
+# So I will measure the sentence's sentiment to different keywords.
+# Named Entity Recognition (NER) can divide sentences into different parts of speech.
+import spacy
+nlp = spacy.load("en_core_web_sm")
+
+sia = SentimentIntensityAnalyzer()
+
+def analyze_entity_sentiment_vader(texts, entity):
+    positive, negative, neutral = 0, 0, 0
+    
+    for text in texts:
+        doc = nlp(text)
+        for ent in doc.ents:
+            if ent.text.lower() == entity.lower() and ent.label_ in ["ORG", "PRODUCT", "PERSON", "GPE"]:# !!Israel can only label as GPE
+                scores = sia.polarity_scores(text)
+                
+                if scores['compound'] > 0:
+                    positive += 1
+                elif scores['compound'] < 0:
+                    negative += 1
+                else:
+                    neutral += 1
+                
+    return positive, negative, neutral
+
+
+
+def visualize_sentiment(positive, negative, neutral, title):
+    labels = ['Positive', 'Negative', 'Neutral']
+    sizes = [positive, negative, neutral]
+    colors = ['#ff9999','#66b3ff','#99ff99']
+    
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, colors = colors, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal')  # Draw plot as a pie
+    plt.title(title)
+    plt.show()
+
+positive, negative, neutral = analyze_entity_sentiment_vader(df_english["textDisplay"], "hamas")
+visualize_sentiment(positive, negative, neutral, title="Figure 6: Sentiment Analysis of Hamas")
+
+positive, negative, neutral = analyze_entity_sentiment_vader(df_english["textDisplay"], "Israel")
+visualize_sentiment(positive, negative, neutral, title="Figure 7: Sentiment Analysis of Israel")
+
+positive, negative, neutral = analyze_entity_sentiment_vader(df_english["textDisplay"], "Palestine")
+visualize_sentiment(positive, negative, neutral, title="Figure 8: Sentiment Analysis of Palestine")
